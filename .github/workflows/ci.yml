@@ -1,0 +1,16 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr poppler-utils
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pydantic numpy pypdf pillow pytesseract reportlab pytest
+      - run: pytest -q
+      - name: Accuracy gate on labeled samples
+        run: python -m ie.cli eval
+      - name: Safety gate on unfamiliar layouts (no unsafe auto-approvals)
+        run: python -m ie.cli eval --labels evals/labels_holdout.jsonl --docs samples_holdout --min-accuracy 0
